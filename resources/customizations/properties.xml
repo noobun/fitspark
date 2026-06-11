@@ -1,0 +1,26 @@
+<properties>
+    <property id="apikey" type="string"></property>
+    <property id="sparkyfithost" type="string"></property>
+
+    <property id="glancedata" type="number">0</property>
+    <property id="glancesync" type="boolean">true</property>
+
+    <property id="view_calories" type="boolean">true</property>
+
+    <property id="view_nutrition" type="boolean">true</property>
+    <property id="view_nutrition_pie" type="boolean">true</property>
+    <property id="view_nutrition_trends" type="boolean">true</property>
+    <property id="view_custom_nutrition" type="boolean">false</property>
+
+    <property id="view_hydration" type="boolean">true</property>
+    <!-- <property id="water_container_id" type="number">-1</property> -->
+
+    <property id="view_weight" type="boolean">true</property>
+    <property id="view_weight_trends" type="boolean">true</property>
+
+    <property id="log_notification" type="boolean">false</property>
+
+    <property id="log_notification_hour_utc" type="number">18</property>
+
+    <property id="logging" type="number">1</property>
+</properties>
