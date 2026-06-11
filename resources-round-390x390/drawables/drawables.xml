@@ -1,0 +1,30 @@
+<drawables>
+    <bitmap id="LauncherIcon" filename="logo.png" />
+
+    <bitmap id="WaterGlass0" filename="waterglass/waterglass0.png" />
+    <bitmap id="WaterGlass25" filename="waterglass/waterglass25.png" />
+    <bitmap id="WaterGlass50" filename="waterglass/waterglass50.png" />
+    <bitmap id="WaterGlass75" filename="waterglass/waterglass75.png" />
+    <bitmap id="WaterGlass100" filename="waterglass/waterglass100.png" />
+
+    <bitmap id="Scale" filename="scale.png" />
+    <bitmap id="Calories" filename="calories.png" />
+    <bitmap id="LauncherIcon" filename="logo.png" />
+    <bitmap id="warningToastIcon" personality="
+        system_icon_destructive__warning
+        system_size__toast_icon
+    "/>
+    <drawable-list id="nextButtonHint">
+        <bitmap id="rightTop" personality="
+            system_icon_dark__hint_button_right_top
+            system_loc__hint_button_right_top" 
+        />
+    </drawable-list>
+    
+    <drawable-list id="menuButtonHint">
+        <bitmap id="leftMid" personality="
+            system_icon_dark__hint_button_left_middle
+            system_loc__hint_button_left_middle" 
+        />
+    </drawable-list>
+</drawables>
