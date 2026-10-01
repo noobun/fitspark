@@ -1,4 +1,6 @@
 <strings>
     <string id="AppName">FitSpark</string>
-    <string id="AppVersion">v0.1.0.rc1</string>
+    <string id="AppVersion">v0.2.0</string>
+    <string id="NoViewsEnabled">No views enabled</string>
+    <string id="NoViewsHint">Hold MENU for settings</string>
 </strings>

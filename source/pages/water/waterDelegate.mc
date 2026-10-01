@@ -15,12 +15,11 @@ class waterDelegate extends WatchUi.BehaviorDelegate {
     private var _sparkyconnector;
 
     function initialize(manager, sparkyconnector, view_nr, subview_nr) {
-        writeLog("overviewDelegate:init", "DONE",10);
+        writeLog("waterDelegate:init", "DONE",10);
         BehaviorDelegate.initialize();
         _manager = manager;
         _sparkyconnector = sparkyconnector;
         _view = manager.getViewByIndex(view_nr, subview_nr);
-        // _view.setFocus(selection_keys[selected]);
     }
 
     function onKey(keyEvent as WatchUi.KeyEvent) as Lang.Boolean {
@@ -43,20 +42,30 @@ class waterDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPlusPressed() {
-        _sparkyconnector.drink(_view.getWaterContainer(), 1);
+        var containerID = _view.getWaterContainer();
+        if (containerID == null) {
+            writeLog("waterDelegate:onPlusPressed", "No valid water container selected, skipping drink", 10);
+            return true;
+        }
+        _sparkyconnector.drink(containerID, 1);
         vibrateAttention();
-        return true; // Tells the system the event was handled
+        return true;
     }
 
     function onMinusPressed() {
-        _sparkyconnector.drink(_view.getWaterContainer(), -1);
+        var containerID = _view.getWaterContainer();
+        if (containerID == null) {
+            writeLog("waterDelegate:onMinusPressed", "No valid water container selected, skipping drink", 10);
+            return true;
+        }
+        _sparkyconnector.drink(containerID, -1);
         vibrateAttention();
-        return true; // Tells the system the event was handled
+        return true;
     }
 
     function onSubmitPressed() {
         _view.changeWaterContainer(1);
-        // vibrateAttention();
+        return true;
     }
 
     function moveAround(code, _manager) as Void {

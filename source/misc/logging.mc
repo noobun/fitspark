@@ -26,6 +26,24 @@ public function getNow() as Lang.String {
 }
 
 (:glance)
+var _writeLogThreshold = -1;
+
+(:glance)
+function _getWriteLogThreshold() as Number {
+    if (_writeLogThreshold < 0) {
+        var configured = Application.getApp().getProperty("logging");
+        if (configured == null || !(configured instanceof Toybox.Lang.Number) || configured < 0) {
+            configured = 1;
+        }
+        _writeLogThreshold = configured;
+    }
+    return _writeLogThreshold;
+}
+
+(:glance)
 public function writeLog(component as String, message as String, level as Number) as Void {
+    if (level < _getWriteLogThreshold()) {
+        return;
+    }
     System.println(level.toString() + " | " + getNow()+" "+component+" | "+message.toString());
 }

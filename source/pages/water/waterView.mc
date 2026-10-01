@@ -22,14 +22,13 @@ class waterView extends WatchUi.View {
     function initialize(manager, sparkyconnector, view_nr, subview_nr) {
         View.initialize();
         _manager = manager;
-        _sparkyconnector = sparkyconnector; // Assuming sparkyconnector is the SparkConnect instance
+        _sparkyconnector = sparkyconnector;
         if (_sparkyconnector != null) {
             _sparkyconnector.setOnDataUpdatedCallback(method(:onSparkyDataUpdated));
         }
-        writeLog("overviewView:Init", "DONE", 10);
+        writeLog("waterView:init", "DONE", 10);
     }
 
-    // Load your resources here
     function onLayout(dc as Dc) as Void {
         waterglassImage.add(WatchUi.loadResource(Rez.Drawables.WaterGlass0));
         waterglassImage.add(WatchUi.loadResource(Rez.Drawables.WaterGlass25));
@@ -37,7 +36,7 @@ class waterView extends WatchUi.View {
         waterglassImage.add(WatchUi.loadResource(Rez.Drawables.WaterGlass75));
         waterglassImage.add(WatchUi.loadResource(Rez.Drawables.WaterGlass100));
 
-        if (System.getDeviceSettings().isTouchScreen) {
+        if (Capabilities.HAS_TOUCH_HARDWARE) {
             var plusBtn = new WatchUi.Button({
                 :stateDefault => new RoundIconButton({
                     :locX => 0, :locY => 0, 
@@ -65,7 +64,6 @@ class waterView extends WatchUi.View {
                 :width => dc.getWidth(), :height => dc.getHeight() * 0.2,
                 :behavior => :onSubmitPressed
             });
-            // Add it to the view's layout
             setLayout([plusBtn, minusBtn, submitBtn]);
         }
 
@@ -76,6 +74,9 @@ class waterView extends WatchUi.View {
         var buffer = _sparkyconnector.getWaterConsumed();
         if (buffer != null){
             waterActual = buffer;
+        }
+        else{
+            waterActual = 0;
         }
         buffer = _sparkyconnector.getWaterGoal();
         if (buffer != null){
@@ -92,38 +93,29 @@ class waterView extends WatchUi.View {
     }
 
     function onSparkyDataUpdated() as Void {
-        // writeLog("overviewView:onSparkyDataUpdated", "Data received: " + data.toString(), 10);
         fetchWater();
         WatchUi.requestUpdate();
     }
 
-    // Called when this View is brought to the foreground
     function onShow() as Void {
-        // Sync data when view is shown
         if (_sparkyconnector != null) {
             _sparkyconnector.setOnDataUpdatedCallback(method(:onSparkyDataUpdated));
             fetchWater();
             _sparkyconnector.fetchHydration();
             _sparkyconnector.fetchWaterContainers();
         }
-        // waterContainerID = Properties.getValue("water_container_id");
     }
 
-    // Update the view
     function onUpdate(dc as Dc) as Void {
-        // Clear screen with a black background
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
         View.onUpdate(dc);
 
         var centerX = dc.getWidth() / 2;
-        // var centerY = dc.getHeight() / 2;
         var fontHeight = Graphics.getFontHeight(Graphics.FONT_SMALL);
 
-        // Draw header with user name and date
         drawHeader(dc, dc.getHeight() * 0.4);
 
-        // Draw water information
         drawWater(dc, centerX, dc.getHeight() * 0.5);
         drawlWaterContainer(dc, centerX, dc.getHeight() * 0.7);
     }
@@ -132,30 +124,39 @@ class waterView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         dc.setPenWidth(2);
-        // dc.drawText(centerX, centerX-dc.getFontHeight(Graphics.FONT_LARGE), Graphics.FONT_LARGE, "Water Intake", Graphics.TEXT_JUSTIFY_CENTER);
         var step = 0;
-        if (waterGoal and waterActual and waterGoal > 0) {
-            step = Math.ceil((waterActual.toFloat() / waterGoal.toFloat()) * 100 / 25.0).toNumber()-1;
-            if (step < 0){
+        if (waterGoal > 0 && waterActual >= 0) {
+            var ratio = waterActual.toFloat() / waterGoal.toFloat();
+            step = (ratio * 4).toNumber();
+            if (step < 0) {
                 step = 0;
             }
-            // writeLog("waterView:drawHeader", "Water Actual: " + waterActual + " / Water Goal: " + waterGoal + " => Step: " + step, 10);
+        }
+        if (waterglassImage.size() > 0 && step > waterglassImage.size() - 1) {
+            step = waterglassImage.size() - 1;
         }
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(dc.getWidth() / 2, dc.getHeight()*0.9 - dc.getFontHeight(Graphics.FONT_SMALL) / 2, Graphics.FONT_SMALL, "NEXT", Graphics.TEXT_JUSTIFY_CENTER);
 
-        var x = (dc.getWidth() - waterglassImage[step].getWidth()) / 2;
-        var y = dc.getHeight()*0.25 - waterglassImage[step].getHeight() / 2;
-        // Draw the bitmap: drawBitmap(x, y, bitmapResource)
-        
-        dc.drawBitmap(x, y, waterglassImage[step]);
+        if (waterglassImage.size() > 0) {
+            var x = (dc.getWidth() - waterglassImage[step].getWidth()) / 2;
+            var y = dc.getHeight()*0.25 - waterglassImage[step].getHeight() / 2;
+            dc.drawBitmap(x, y, waterglassImage[step]);
+        }
     }
 
     private function drawWater(dc, centerX, y) {
         dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
 
-        var waterText = Lang.format("$1$ / $2$", [waterActual != -1 ? waterActual : 0, waterGoal]);
+        var waterText = "--";
+        if (waterGoal != null && waterGoal > 0) {
+            if (waterActual < 0) {
+                waterText = Lang.format("$1$ / $2$", ["--", waterGoal]);
+            } else {
+                waterText = Lang.format("$1$ / $2$", [waterActual, waterGoal]);
+            }
+        }
         dc.drawText(centerX, y, Graphics.FONT_SMALL, waterText, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -176,7 +177,6 @@ class waterView extends WatchUi.View {
             container = waterContainers[waterContainerID];
         }
         
-        // Ensure displayed strings are not overly long
         var nameStr = container["name"].toString();
         if (nameStr.length() > 8) {
             nameStr = nameStr.substring(0, 8)+"...";
@@ -189,24 +189,30 @@ class waterView extends WatchUi.View {
         dc.drawText(centerX, y - dc.getFontHeight(Graphics.FONT_TINY)/2, Graphics.FONT_TINY, volStr+" "+container["unit"]+" / "+nameStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Called when this View is removed from the screen. Save the
-    // state of this View here. This includes freeing resources from
-    // memory.
     function onHide() as Void {
 
     }
 
     function changeWaterContainer(direction) as Lang.Boolean {
-        // Pass data payload to view
         writeLog("waterView:changeWaterContainer", "Changing container in direction: " + direction, 10);
-        
+
+        if (waterContainers == null || waterContainers.size() == 0) {
+            waterContainerID = -1;
+            writeLog("waterView:changeWaterContainer", "No containers available", 10);
+            return true;
+        }
+
+        if (waterContainerID < 0 || waterContainerID >= waterContainers.size()) {
+            waterContainerID = 0;
+            WatchUi.requestUpdate();
+            return true;
+        }
+
         var newIndex = waterContainerID + direction;
 
-        // Edge case: Right boundary (Moving past the last item)
         if (newIndex >= waterContainers.size()) {
             newIndex = 0;
         } 
-        // Edge case: Left boundary (Moving past the first item)
         else if (newIndex < 0) {
             newIndex = waterContainers.size() - 1;
         }
@@ -217,7 +223,13 @@ class waterView extends WatchUi.View {
         return true;
     }
 
-    function getWaterContainer() as Object {
-        return waterContainers[waterContainerID]["id"]; // Assuming container IDs are 0-based in the array
+    function getWaterContainer() as Object or Null {
+        if (waterContainers == null || waterContainers.size() == 0) {
+            return null;
+        }
+        if (waterContainerID < 0 || waterContainerID >= waterContainers.size()) {
+            return null;
+        }
+        return waterContainers[waterContainerID]["id"];
     }
 }

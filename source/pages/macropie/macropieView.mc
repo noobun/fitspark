@@ -6,6 +6,7 @@ import Toybox.Lang;
 import Toybox.Application;
 import Toybox.System;
 import Toybox.Timer;
+import Toybox.Math;
 
 class macroPieView extends WatchUi.View {
 
@@ -13,6 +14,7 @@ class macroPieView extends WatchUi.View {
     private var _manager;
 
     private var pieChart;
+    private var pageHint;
 
     private var actual = {};
     private var percentages = {
@@ -24,11 +26,12 @@ class macroPieView extends WatchUi.View {
     function initialize(manager, sparkyconnector, view_nr, subview_nr) {
         View.initialize();
         _manager = manager;
-        _sparkyconnector = sparkyconnector; // Assuming sparkyconnector is the SparkConnect instance
+        _sparkyconnector = sparkyconnector;
         if (_sparkyconnector != null) {
             _sparkyconnector.setOnDataUpdatedCallback(method(:onSparkyDataUpdated));
         }
         pieChart = new PieChart([getColorForData("protein"), getColorForData("carbs"), getColorForData("fat")]);
+        pageHint = new Rez.Drawables.nextButtonHint();
         writeLog("MacroPieView:Init", "DONE", 10);
     }
 
@@ -38,15 +41,12 @@ class macroPieView extends WatchUi.View {
     }
 
     function onSparkyDataUpdated() as Void {
-        // writeLog("macroView:onSparkyDataUpdated", "Data received: " + data.toString(), 10);
         actual = _sparkyconnector.getMacroSetXDaysAgo(["protein", "carbs", "fat"], 0);
         calculatePercentages();
         WatchUi.requestUpdate();
     }
 
-    // Called when this View is brought to the foreground
     function onShow() as Void {
-        // Sync data when view is shown
         if (_sparkyconnector != null) {
             _sparkyconnector.setOnDataUpdatedCallback(method(:onSparkyDataUpdated));
             actual = _sparkyconnector.getMacroSetXDaysAgo(["protein", "carbs", "fat"], 0);
@@ -56,33 +56,62 @@ class macroPieView extends WatchUi.View {
     }
 
     private function calculatePercentages(){
-        var calories = actual["protein"]*4 + actual["carbs"]*4 + actual["fat"]*7;
-        if (calories != 0) {
-            percentages["protein"] = (actual["protein"].toFloat()*4/calories*100).toNumber();
-            percentages["carbs"] = (actual["carbs"].toFloat()*4/calories*100).toNumber();
-            percentages["fat"] = (actual["fat"].toFloat()*7/calories*100).toNumber();
-
-            pieChart.feedData([percentages["protein"], percentages["carbs"], percentages["fat"]]);
+        var protein = actual["protein"] != null ? actual["protein"] : 0;
+        var carbs = actual["carbs"] != null ? actual["carbs"] : 0;
+        var fat = actual["fat"] != null ? actual["fat"] : 0;
+        var calories = protein*4 + carbs*4 + fat*9;
+        if (calories == 0) {
+            percentages["protein"] = 0;
+            percentages["carbs"] = 0;
+            percentages["fat"] = 0;
+            pieChart.feedData([]);
+            return;
         }
+
+        var proteinPct = protein.toFloat()*4/calories*100;
+        var carbsPct = carbs.toFloat()*4/calories*100;
+        var fatPct = fat.toFloat()*9/calories*100;
+
+        var proteinInt = Math.round(proteinPct).toNumber();
+        var carbsInt = Math.round(carbsPct).toNumber();
+        var fatInt = Math.round(fatPct).toNumber();
+
+        // Keep the displayed percentages summing to exactly 100.
+        var diff = 100 - (proteinInt + carbsInt + fatInt);
+        if (diff != 0) {
+            if (proteinPct >= carbsPct && proteinPct >= fatPct) {
+                proteinInt += diff;
+            } else if (carbsPct >= fatPct) {
+                carbsInt += diff;
+            } else {
+                fatInt += diff;
+            }
+        }
+
+        percentages["protein"] = proteinInt;
+        percentages["carbs"] = carbsInt;
+        percentages["fat"] = fatInt;
+
+        pieChart.feedData([proteinPct, carbsPct, fatPct]);
     }
 
-    // Update the view
     function onUpdate(dc as Dc) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
-        // Draw header with user name and date
         drawHeader(dc);
         pieChart.draw(dc);
 
         if(_manager.hasSubView()){
-            var pageHint = new Rez.Drawables.nextButtonHint();
             pageHint.draw(dc);
         }
     }
 
     private function drawHeader(dc){
-        var calories = actual["protein"]*4 + actual["carbs"]*4 + actual["fat"]*7;
+        var protein = actual["protein"] != null ? actual["protein"] : 0;
+        var carbs = actual["carbs"] != null ? actual["carbs"] : 0;
+        var fat = actual["fat"] != null ? actual["fat"] : 0;
+        var calories = protein*4 + carbs*4 + fat*9;
         var barWidth = dc.getWidth()*0.03;
         dc.setPenWidth(2);
 
@@ -106,9 +135,6 @@ class macroPieView extends WatchUi.View {
 
     }
 
-    // Called when this View is removed from the screen. Save the
-    // state of this View here. This includes freeing resources from
-    // memory.
     function onHide() as Void {
 
     }

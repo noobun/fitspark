@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.WatchUi;
 using WatchUi as Ui;
 import Toybox.Application;
@@ -51,8 +52,6 @@ class ProgressBar {
         var width = me.width;
         var height = me.height;
         var y = me.locationy;
-        var goal;
-        var actual;
         if (me.fill > 0) {
             var fillHeight = (me.current.toFloat() / me.fill.toFloat()) * height.toFloat();
 
@@ -84,18 +83,16 @@ class ProgressBar {
             dc.fillRoundedRectangle(me.locationx-(me.width+4)/2, me.locationy, me.width+4, me.height, 6);
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        if (me.fill <=0) {
-            goal = "TBD";
-        }else{
-            goal = me.fill;
+        var goalValue = 0;
+        if (me.fill != null && me.fill > 0) {
+            goalValue = Math.round(me.fill.toFloat()).toNumber();
         }
-        if (me.current <0) {
-            actual = "TBD";
-        }else{
-            actual = me.current;
+        var actualValue = 0;
+        if (me.current != null && me.current >= 0) {
+            actualValue = Math.round(me.current.toFloat()).toNumber();
         }
-        dc.drawText(me.locationx, dc.getHeight()*0.08, Graphics.FONT_XTINY, goal.toNumber(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(me.locationx, dc.getHeight()*0.76, Graphics.FONT_XTINY, actual, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(me.locationx, dc.getHeight()*0.08, Graphics.FONT_XTINY, goalValue, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(me.locationx, dc.getHeight()*0.76, Graphics.FONT_XTINY, actualValue, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(me.locationx, dc.getHeight()*0.84, Graphics.FONT_XTINY, me.name, Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
@@ -137,28 +134,60 @@ class PieChart {
     }
 
     function draw(dc) {
-        var startAngle = me.startAngle;
-        var endAngle = me.startAngle;
-
         dc.setPenWidth(me.strokeWidth);
 
+        var total = 0.0;
         for (var i = 0; i < me.data.size(); i++) {
-            var dataPoint = me.data[i];
-            dc.setColor(colorList[i % colorList.size()], Graphics.COLOR_TRANSPARENT);
-            if (i == me.data.size() - 1) {
-                // To avoid gaps due to rounding errors, make the last slice end at the start angle
-                endAngle = me.startAngle;
-            } else {
-                endAngle = (startAngle - (dataPoint.toFloat()/100*360)).toNumber();
+            var value = me.data[i];
+            if (value != null && value > 0) {
+                total += value.toFloat();
             }
-            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, startAngle, endAngle);
-            startAngle=endAngle;
         }
 
-        if (me.data.size() == 0) {
-            // Draw empty circle if no data
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, 0, 360);
+        if (total <= 0) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, me.startAngle.toNumber(), me.startAngle.toNumber() - 360);
+            return;
+        }
+
+        // Each slice covers its share of the total, so the arcs always add up to
+        // a complete 360 degree circle that reflects the ratio, regardless of how
+        // the incoming values are rounded.
+        var endAngle = me.startAngle.toFloat();
+        var drewSlice = false;
+        var lastSliceIndex = 0;
+        var lastSliceStart = me.startAngle.toFloat();
+        var lastDrawnEnd = me.startAngle.toFloat();
+        for (var i = 0; i < me.data.size(); i++) {
+            var value = me.data[i];
+            if (value == null || value <= 0) {
+                continue;
+            }
+            var sliceStart = endAngle;
+            endAngle = sliceStart - value.toFloat() / total * 360.0;
+            if (sliceStart.toNumber() == endAngle.toNumber()) {
+                continue;
+            }
+            dc.setColor(colorList[i % colorList.size()], Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, sliceStart.toNumber(), endAngle.toNumber());
+            drewSlice = true;
+            lastSliceIndex = i;
+            lastSliceStart = sliceStart;
+            lastDrawnEnd = endAngle;
+        }
+
+        if (!drewSlice) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, me.startAngle.toNumber(), me.startAngle.toNumber() - 360);
+            return;
+        }
+
+        // Close the last slice to the seam so integer rounding cannot leave a
+        // hairline gap at the end of the circle.
+        var seam = me.startAngle.toFloat() - 360.0;
+        if (lastDrawnEnd != seam) {
+            dc.setColor(colorList[lastSliceIndex % colorList.size()], Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(me.centerX, me.centerY, me.radius, me.direction, lastSliceStart.toNumber(), seam.toNumber());
         }
     }
 }
@@ -198,12 +227,15 @@ class MultiGraph {
         me.maxYValue = null;
         me.minYValue = null;
 
-        for (var j = 0; j < dataSets.size(); j++) {
-            var set = dataSets[j];
+        for (var j = 0; j < me.dataSets.size(); j++) {
+            var set = me.dataSets[j];
             for (var i = 0; i < set.size(); i++) {
                 var value = set[i];
-                if (minYValue == null || value < minYValue) { minYValue = value; }
-                if (maxYValue == null || value > maxYValue) { maxYValue = value; }
+                if (value == null) {
+                    continue;
+                }
+                if (me.minYValue == null || value < me.minYValue) { me.minYValue = value; }
+                if (me.maxYValue == null || value > me.maxYValue) { me.maxYValue = value; }
             }
         }
     }
@@ -238,7 +270,6 @@ class MultiGraph {
     }
 
     function drawTable(dc, xaxys){
-        // Overwrite if no data
         if(xaxys.size() == 0){
             xaxys = [getDateXDaysAgo(0),getDateXDaysAgo(1),getDateXDaysAgo(2),getDateXDaysAgo(3),getDateXDaysAgo(4)];
         }
@@ -289,12 +320,18 @@ class MultiGraph {
     function drawTrend(dc, trend, y, color) {
         if (trend.size() < 2) { return; }
 
-        // 1. Define the Box (0.25 of screen height)
+        // If no numeric range could be computed (empty / all-null series), skip
+        // the spline: the grid + scale are still drawn by drawTable (0..100).
+        // Never run (maxYValue - minYValue) when either bound is null.
+        if (me.maxYValue == null || me.minYValue == null) {
+            return;
+        }
+
         var screenHeight = dc.getHeight();
         var screenWidth = dc.getWidth();
         
         var boxHeight = screenWidth*0.55;
-        var boxTop = y - boxHeight/2; // Centered vertically
+        var boxTop = y - boxHeight/2;
         var boxBottom = y + boxHeight/2;
 
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
@@ -302,14 +339,11 @@ class MultiGraph {
         var startX = screenWidth * 0.23;
         var leap = (dc.getWidth() * 0.80 - dc.getWidth() * 0.23)/(trend.size()-1);
 
-        // Prevent division by zero if all values are the same
         var range = (me.maxYValue - me.minYValue).toFloat();
         if (range == 0) { range = 1.0; }
 
-        // 3. Calculate horizontal spacing
         var xSpacing = screenWidth.toFloat() / (trend.size() - 1);
 
-        // 4. Draw the lines
         dc.setPenWidth(2);
 
         var track_x = startX;
@@ -320,8 +354,11 @@ class MultiGraph {
         var x1 = -1;
         var x2 = -1;
         for (var i = 0; i < trend.size() - 1; i++) {
-            // Normalize current and next point
-            // (val - min) / range gives a 0.0 to 1.0 multiplier
+            if (trend[i] == null || trend[i+1] == null) {
+                startX += leap;
+                continue;
+            }
+
             y1 = boxBottom - ((trend[i] - me.minYValue) / range * boxHeight);
             y2 = boxBottom - ((trend[i+1] - me.minYValue) / range * boxHeight);
             
@@ -330,8 +367,6 @@ class MultiGraph {
 
 
             datapoints.add([startX, y1]);
-            // datapoints.add([startX+leap, y2]);
-            // dc.drawLine(startX, y1, startX+leap, y2);
             startX += leap;
         }
         datapoints.add([startX, y2]);

@@ -1,6 +1,5 @@
 using Toybox.Communications;
 using Toybox.Application;
-using Toybox.Json;
 using Toybox.System;
 import Toybox.Lang;
 using Toybox.PersistedContent;
@@ -15,16 +14,25 @@ class RequestManagerResponseHandler {
         me.manager = manager;
     }
 
-    function onReceive(responseCode as Number, data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
-        var success = (responseCode >= 200 && responseCode <= 304);
-        
+    function onReceive(responseCode as Number, data as Dictionary or String or Null) as Void {
+        var success = (responseCode >= 200 && responseCode <= 299);
+        var payload = data;
+
+        if (success) {
+            payload = normalizePayload(data);
+            if (payload == null) {
+                writeLog("ResponseHandler:onReceive", "Success response had no usable payload (code " + responseCode.toString() + ")", 100);
+                success = false;
+            }
+        }
+
         if (me.callback != null) {
             if (me.callback instanceof Lang.Method) {
                 try {
                     me.callback.invoke({
                         :success => success,
                         :code => responseCode,
-                        :data => success ? data : null
+                        :data => success ? payload : null
                     });
                 } catch (ex) {
                     writeLog("ResponseHandler:onReceive", "Callback invoke crashed: " + ex.getErrorMessage(), 100);
@@ -34,10 +42,8 @@ class RequestManagerResponseHandler {
             }
         }
 
-        // Notify manager to process the next item in the FIFO queue
         if (me.manager != null) {
             try {
-                // Check if manager still exists and has the method
                 if (me.manager has :_onRequestComplete) {
                     me.manager._onRequestComplete();
                 }
@@ -45,6 +51,25 @@ class RequestManagerResponseHandler {
                 writeLog("ResponseHandler:onReceive", "Notify manager failed: " + ex.getErrorMessage(), 100);
             }
         }
+    }
+
+    private function normalizePayload(data) as Object or Null {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof Dictionary) {
+            return data;
+        }
+        if (data instanceof Array) {
+            return data;
+        }
+        if (data instanceof String) {
+            writeLog("ResponseHandler:normalizePayload", "String payload treated as failure", 100);
+            return null;
+        }
+
+        writeLog("ResponseHandler:normalizePayload", "Unexpected payload type treated as failure", 100);
+        return null;
     }
 }
 
@@ -83,7 +108,6 @@ class RequestManager {
     private function makeRequest(endpoint, paramsss, httpMethod, callback) {
         var params = (paramsss == null) ? {} : paramsss;
 
-        // FIFO Check: If we are at capacity, push to the back of the queue array
         if (me._ongoing >= me.MAX_CONCURRENT) {
             var entry = {
                 :endpoint => endpoint,
@@ -120,11 +144,9 @@ class RequestManager {
         me._ongoing -= 1;
         if (me._ongoing < 0) { me._ongoing = 0; }
 
-        // FIFO Execution: Process the front of the queue (Index 0)
         if (me._queue.size() > 0) {
             var next = me._queue[0];
             
-            // Correct way to "shift/remove" the first item from an array in Monkey C
             me._queue = me._queue.slice(1, me._queue.size());
 
             if (next != null) {
