@@ -5,12 +5,14 @@
     <property id="glancedata" type="number">0</property>
     <property id="glancesync" type="boolean">true</property>
 
+    <property id="persist_data" type="boolean">false</property>
+
     <property id="view_calories" type="boolean">true</property>
 
     <property id="view_nutrition" type="boolean">true</property>
-    <property id="view_nutrition_pie" type="boolean">true</property>
     <property id="view_nutrition_trends" type="boolean">true</property>
     <property id="view_custom_nutrition" type="boolean">false</property>
+    <property id="view_calories_breakdown" type="boolean">true</property>
 
     <property id="view_hydration" type="boolean">true</property>
     <!-- <property id="water_container_id" type="number">-1</property> -->

@@ -1,10 +1,10 @@
 <img src="publishing/hero.png" width="100%">
 
-# FitSpark – Your Garmin Companion for SparkyFitness
+# FitSpark - Your Garmin Companion for SparkyFitness
 
-![version](https://img.shields.io/badge/version-v0.1.0.rc1-red.svg)
+![version](https://img.shields.io/badge/version-v0.2.0-red.svg)
 
-Welcome to **FitSpark**, a Garmin companion app designed for Garmin smartwatches. FitSpark brings your daily fitness and nutrition goals directly to your wrist, letting you monitor calories, weight, water intake, and macronutrients in real time—all without pulling out your phone. FitSpark is built for the SparkyFitness ecosystem.
+Welcome to **FitSpark**. FitSpark brings your daily fitness and nutrition goals directly to your wrist, letting you monitor calories, weight, water intake, and macronutrients. FitSpark is built for the SparkyFitness ecosystem.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ Welcome to **FitSpark**, a Garmin companion app designed for Garmin smartwatches
     - [**5.3.2 Weight Screen**](#532-weight-screen)
     - [**5.3.3 Weight Graph Screen**](#533-weight-graph-screen)
     - [**5.3.4 Water Intake Screen**](#534-water-intake-screen)
-    - [**5.3.5 Macronutrients Screen (Nutrition)**](#535-macronutrients-screen-nutrition)
+    - [**5.3.5 Nutrients Screen (Nutrition)**](#535-macronutrients-screen-nutrition)
     - [**5.3.6 Nutrition Trends Screen (Last 4 Days)**](#536-nutrition-trends-screen-last-4-days)
     - [**5.3.7 Nutrition Pie Screen (Today's Macro Breakdown)**](#537-nutrition-pie-screen-todays-macro-breakdown)
 - [**6. Customization & Settings**](#6-customization--settings)
@@ -60,16 +60,16 @@ Get a quick snapshot of your day's calories consumed versus your daily calorie g
 - Log water drinks easily with +/− controls on touchscreen devices
 - Use water containers already defined inside SparkyFitness
 
-### 🥗 Macronutrient Tracking
+### 🥗 Nutrient Tracking
 Monitor your daily nutrition targets:
-- **Protein** – See how much you've consumed vs. your daily goal
-- **Carbohydrates** – Track your carb intake against your goal
-- **Fats** – Monitor your fat consumption with your personalized target
+- **Protein** - See how much you've consumed vs. your daily goal
+- **Carbohydrates** - Track your carb intake against your goal
+- **Fats** - Monitor your fat consumption with your personalized target
 
 View all three macros at a glance to ensure you're hitting your nutritional targets.
 
 ### 📈 Nutrition Trends (Last 5 Days)
-See how your macronutrient intake has trended over the past few days:
+Nutrients trends now display the first non-calorie nutrients selected for the mobile summary view, while the rest of the summary values are available in a dedicated panel. You can sync changes to the selected nutrient list from the menu under Sync Options.
 - Visualize your protein, carbs, fats, and calorie patterns
 - Identify eating habits and adjust as needed
 - Track your progress with trend lines and data points
@@ -101,6 +101,7 @@ FitSpark was partially tested and should work with the following SparkyFitness v
 |-------|--------|
 | < v0.16.6.0 | ❓ Unknown |
 | v0.16.6.x | ✅ Supported |
+| v0.17.x | ✅ Supported |
 
 ### **3.3 Installation**
 
@@ -130,9 +131,26 @@ FitSpark requires a Garmin smartwatch with a **touchscreen** and **5-button conf
 | fēnix® 8 Pro 47mm | ✅ Supported |
 | fēnix® 8 Solar 47mm | ✅ Supported |
 | fēnix® 8 Solar 51mm | ✅ Supported |
+| fēnix® 9 43mm | ✅ Supported |
+| fēnix® 9 47mm / 51mm | ✅ Supported |
+| fēnix® 9 Pro 43mm | ✅ Supported |
+| fēnix® 9 Pro 47mm | ✅ Supported |
+| fēnix® 9 Pro 51mm | ✅ Supported |
+| fēnix® 9 Pro Solar 47mm | ✅ Supported |
+| fēnix® 9 Pro Solar 51mm | ✅ Supported |
 | fēnix® E | ✅ Supported |
+| Forerunner® 70 | ✅ Supported |
+| Forerunner® 165 | ✅ Supported |
+| Forerunner® 165 Music | ✅ Supported |
+| Forerunner® 170 | ✅ Supported |
+| Forerunner® 170 Music | ✅ Supported |
+| Forerunner® 255 | ✅ Supported |
+| Forerunner® 255 Music | ✅ Supported |
+| Forerunner® 265 | ✅ Supported |
 | Forerunner® 570 42mm | ✅ Supported |
 | Forerunner® 570 47mm | ✅ Supported |
+| Forerunner® 955 / Solar | ✅ Supported |
+| Forerunner® 965 | ✅ Supported |
 | Forerunner® 970 | ✅ Supported |
 | instinct® 3 AMOLED 45mm | ✅ Supported |
 | instinct® 3 AMOLED 50mm | ✅ Supported |
@@ -237,15 +255,21 @@ After configuration restart the app and FitSpark will:
 
 <img src="publishing/water.png" width="30%">
 
-#### **5.3.5 Macronutrients Screen (Nutrition)**
+#### **5.3.5 Nutrients Screen (Nutrition)**
 
-<img src="publishing/macro.png" width="30%">
+<img src="publishing/nutri.png" width="30%">
 
 #### **5.3.6 Nutrition Trends Screen (Last 4 Days)**
 
-<img src="publishing/macrotrends.png" width="30%">
+Nutri Trends now displays the first selected non-calorie nutrient from your mobile summary view, such as fiber, sugar, sodium, or another nutrient you have chosen. The rest of the summary values appear in a dedicated panel below the chart, giving you a clean trend view while still keeping additional nutrient details available.
+
+When you change the summary nutrient selection in SparkyFitness, open the watch menu and use the Sync Options to refresh the nutrient list on the device. This ensures that Nutri Trends reflects your current mobile summary configuration.
+
+<img src="publishing/nutritrends.png" width="30%">
 
 #### **5.3.7 Nutrition Pie Screen (Today's Macro Breakdown)**
+
+Macro Pie continues to display carbs, fat, and proteins since those are the main caloric macros.
 
 <img src="publishing/macropie.png" width="30%">
 
@@ -265,19 +289,25 @@ Manage what information appears in your Garmin Glance (the quick-view feature on
   - Server endpoint (https only)
 - **API KEY** (text)
   - SparkyFitness API key
+- **Nutrient Sync** (action)
+  - Refreshes the selected nutrient list used by the mobile summary view and Nutri Trends screen
+  - Use this after changing which non-calorie nutrients are selected in SparkyFitness
 - **Glance Sync** (On/Off)
   - Enable to have your watch glance auto-update with the latest data
   - Disable to save battery and reduce background sync activity
+- **Cache Data** (On/Off)
+  - **Off (default):** FitSpark caches nothing on the watch. Profile, goals, weight, water, and nutrient values are read live from your server every time, so you always see the freshest data and the watch does not write to its local storage.
+  - **On:** FitSpark saves the last fetched values to the watch's local storage and reuses them on the next launch, so data appears immediately and fewer requests are made. Values may briefly be stale until the next sync.
 
 #### **6.1.3 View Settings**
 Choose which screens appear in your app:
-- **Calories** (On/Off) – Show/hide the calories overview screen
-- **Nutrition** (On/Off) – Show/hide the macronutrients screen
-- **Nutrition Trends** (On/Off) – Show/hide the 4-day trends chart
-- **Nutrition Pie** (On/Off) – Show/hide the pie chart visualization (if available)
-- **Hydration** (On/Off) – Show/hide the water intake screen on touchscreen devices
-- **Weight** (On/Off) – Show/hide the weight logging screen
-- **Weight Trends** (On/Off) – Show/hide the 7-day weight history
+- **Calories** (On/Off) - Show/hide the calories overview screen
+- **Nutrition** (On/Off) - Show/hide the nutrients screen
+- **Nutrition Trends** (On/Off) - Show/hide the 4-day trends chart
+- **Nutrition Pie** (On/Off) - Show/hide the pie chart visualization (if available)
+- **Hydration** (On/Off) - Show/hide the water intake screen on touchscreen devices
+- **Weight** (On/Off) - Show/hide the weight logging screen
+- **Weight Trends** (On/Off) - Show/hide the 7-day weight history
 
 **Pro Tip:** Customize your screens based on what matters most to you. If you only care about calories and water, disable the other views for faster navigation.
 

@@ -44,23 +44,30 @@ class weightDelegate extends WatchUi.BehaviorDelegate {
     function onPlusPressed() {
         var weightActual = _view.getWeight();
         writeLog("weightDelegate:onPlusPressed", "Current weight: " + weightActual, 10);
-        weightActual += 0.1; // Increment weight by 0.1 kg
-        _view.receiveWeightData(weightActual); // Update the view with the new weight
-        return true; // Tells the system the event was handled
+        weightActual += 0.1;
+        _view.receiveWeightData(weightActual);
+        return true;
     }
 
     function onMinusPressed() {
         var weightActual = _view.getWeight();
         writeLog("weightDelegate:onMinusPressed", "Current weight: " + weightActual, 10);
-        weightActual -= 0.1; // Decrement weight by 0.1 kg
-        _view.receiveWeightData(weightActual); // Update the view with the new weight
-        return true; // Tells the system the event was handled
+        weightActual -= 0.1;
+        _view.receiveWeightData(weightActual);
+        return true;
     }
 
     function onSubmitPressed() {
         var weight = _view.getWeight();
+        if (weight == null || weight <= 0) {
+            writeLog("weightDelegate:onSubmitPressed", "Not submitting invalid weight: " + weight, 100);
+            return true;
+        }
         writeLog("weightDelegate:onSubmitPressed", "Submitting weight: " + weight, 10);
         _sparkyconnector.submitWeight(weight);
+        WatchUi.showToast("Logged", {
+                    :icon => WatchUi.loadResource(Rez.Drawables.positiveCheckToastIcon)
+        });
         vibrateAttention();
         return true;
     }

@@ -43,27 +43,9 @@ function getMainMenu() {
             {}
         )
     );
-    // menu.addItem(
-    //     new MenuItem(
-    //         "Custom Nutrients",
-    //         "",
-    //         "custom_nutrients",
-    //         {}
-    //     )
-    // );
-    // menu.addItem(
-    //     new MenuItem(
-    //         "Water Containers",
-    //         "",
-    //         "water_containers",
-    //         {}
-    //     )
-    // );
 
-    // Create a new Menu2InputDelegate
-    delegate = new MainMenuInputDelegate(menu); // a WatchUi.Menu2InputDelegate
+    delegate = new MainMenuInputDelegate(menu);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
@@ -93,25 +75,32 @@ function getSyncOptions(parent, event_name) {
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Glance Sync", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "glance_sync",                          // Event name for toggle changes
-            Application.getApp().getProperty("glancesync"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "glance_sync",
+            Application.getApp().getProperty("glancesync"),
+            null
         )
     );
     menu.addItem(
         new MenuItem(
             "Sync Nutrients", 
-            "Mobile | Quick Info",
-            "sync_preferences",                          // Event name for toggle changes
+            "Mobile | Summary",
+            "sync_preferences",
             {}
         )
     );
+    menu.addItem(
+        new WatchUi.ToggleMenuItem(
+            "Cache Data",
+            {:enabled=>"On", :disabled=>"Off"},
+            "persist_data",
+            Application.getApp().getProperty("persist_data"),
+            null
+        )
+    );
 
-    // Create a new Menu2InputDelegate
-    delegate = new SyncOptionsDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
+    delegate = new SyncOptionsDelegate(menu, item, event_name);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
@@ -124,17 +113,15 @@ function getGenericOptions(parent, event_name) {
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Log Notification", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "log_notification",                          // Event name for toggle changes
-            Application.getApp().getProperty("log_notification"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "log_notification",
+            Application.getApp().getProperty("log_notification"),
+            null
         )
     );
 
-    // Create a new Menu2InputDelegate
-    delegate = new GenericOptionsDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
+    delegate = new GenericOptionsDelegate(menu, item, event_name);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
@@ -147,86 +134,75 @@ function getViewOptions(parent, event_name) {
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Calories", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "view_calories",                          // Event name for toggle changes
-            Application.getApp().getProperty("view_calories"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "view_calories",
+            Application.getApp().getProperty("view_calories"),
+            null
         )
     );
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Nutrition", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "view_nutrition",                          // Event name for toggle changes
-            Application.getApp().getProperty("view_nutrition"),                           // Initial state (true/false)
-            null                                // Optional Icon
-        )
-    );
-    menu.addItem(
-        new WatchUi.ToggleMenuItem(
-            "Nutrition Pie", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "view_nutrition_pie",                          // Event name for toggle changes
-            Application.getApp().getProperty("view_nutrition_pie"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "view_nutrition",
+            Application.getApp().getProperty("view_nutrition"),
+            null
         )
     );
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Nutrition Trends", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "view_nutrition_trends",                          // Event name for toggle changes
-            Application.getApp().getProperty("view_nutrition_trends"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "view_nutrition_trends",
+            Application.getApp().getProperty("view_nutrition_trends"),
+            null
         )
     );
-    // menu.addItem(
-    //     new WatchUi.ToggleMenuItem(
-    //         "Custom Nutrition", 
-    //         {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-    //         "view_custom_nutrition",                          // Event name for toggle changes
-    //         Application.getApp().getProperty("view_custom_nutrition"),                           // Initial state (true/false)
-    //         null                                // Optional Icon
-    //     )
-    // );
+    menu.addItem(
+        new WatchUi.ToggleMenuItem(
+            "Cal. Breakdown", 
+            {:enabled=>"On", :disabled=>"Off"},
+            "view_calories_breakdown",
+            Application.getApp().getProperty("view_calories_breakdown"),
+            null
+        )
+    );
     
 
-    if (System.getDeviceSettings().isTouchScreen) {
+    if (Capabilities.HAS_TOUCH_HARDWARE) {
         menu.addItem(
             new WatchUi.ToggleMenuItem(
                 "Hidratation", 
-                {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-                "view_hydration",                          // Event name for toggle changes
-                Application.getApp().getProperty("view_hydration"),                           // Initial state (true/false)
-                null                                // Optional Icon
+                {:enabled=>"On", :disabled=>"Off"},
+                "view_hydration",
+                Application.getApp().getProperty("view_hydration"),
+                null
             )
         );
     }
-    if (System.getDeviceSettings().isTouchScreen) {
+    if (Capabilities.HAS_TOUCH_HARDWARE) {
         menu.addItem(
             new WatchUi.ToggleMenuItem(
                 "Weight", 
-                {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-                "view_weight",                          // Event name for toggle changes
-                Application.getApp().getProperty("view_weight"),                           // Initial state (true/false)
-                null                                // Optional Icon
+                {:enabled=>"On", :disabled=>"Off"},
+                "view_weight",
+                Application.getApp().getProperty("view_weight"),
+                null
             )
         );
     }
     menu.addItem(
         new WatchUi.ToggleMenuItem(
             "Weight Trends", 
-            {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-            "view_weight_trends",                          // Event name for toggle changes
-            Application.getApp().getProperty("view_weight_trends"),                           // Initial state (true/false)
-            null                                // Optional Icon
+            {:enabled=>"On", :disabled=>"Off"},
+            "view_weight_trends",
+            Application.getApp().getProperty("view_weight_trends"),
+            null
         )
     );
 
-    // Create a new Menu2InputDelegate
-    delegate = new ViewOptionsDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
+    delegate = new ViewOptionsDelegate(menu, item, event_name);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
@@ -277,10 +253,8 @@ function getGlanceDataMenu(parent, event_name) {
         )
     );
 
-    // Create a new Menu2InputDelegate
-    delegate = new GlanceDataMenuDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
+    delegate = new GlanceDataMenuDelegate(menu, item, event_name);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
@@ -313,41 +287,12 @@ function getWaterContainersMenu(parent, event_name) {
         )
     );
 
-    // Create a new Menu2InputDelegate
-    delegate = new WaterContainersDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
+    delegate = new WaterContainersDelegate(menu, item, event_name);
 
-    // Push the Menu2 View set up in the initializer
     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
     return true;
 }
 
-// function getCustomNutrientsMenu(parent, event_name) {
-//     var menu = new WatchUi.Menu2({:title=>"Select Nutrient"});
-//     var delegate;
-//     var item = parent;
 
-//     var interestNutrients = Application.getApp().getSparkyConnector().getInterestNutrients();
-//     var mandatoryNutrients = Application.getApp().getSparkyConnector().getMandatoryNutrients();
 
-//     for (var i = 0; i < interestNutrients.size(); i++) {
-//         var nutrient = interestNutrients[i];
-//         if (mandatoryNutrients.indexOf(nutrient) == -1) { // Only add if not mandatory
-//             menu.addItem(
-//                 new WatchUi.ToggleMenuItem(
-//                     nutrient,
-//                     {:enabled=>"On", :disabled=>"Off"}, // Sub-labels for states
-//                     nutrient,                          // Event name for toggle changes
-//                     true,                           // Initial state (true/false)
-//                     null                                // Optional Icon
-//                 )
-//             );
-//         }
-//     }
 
-//     // Create a new Menu2InputDelegate
-//     delegate = new CustomNutrientsDelegate(menu, item, event_name); // a WatchUi.Menu2InputDelegate
-
-//     // Push the Menu2 View set up in the initializer
-//     WatchUi.pushView(menu, delegate, WatchUi.SLIDE_IMMEDIATE);
-//     return true;
-// }

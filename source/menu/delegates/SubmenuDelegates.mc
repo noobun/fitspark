@@ -58,9 +58,11 @@ class SyncOptionsDelegate extends WatchUi.Menu2InputDelegate {
         writeLog("SyncOptionsDelegate", "Selected Item for "+inner_event_type+": "+item.getId(), 100);
         var id = item.getId();
         if (item instanceof WatchUi.ToggleMenuItem) {
-            var newState = item.isEnabled(); // Gets the new state after the click
+            var newState = item.isEnabled();
             if (id.equals("glance_sync")) {
                 Properties.setValue("glancesync", newState);
+            }else if (id.equals("persist_data")) {
+                Properties.setValue("persist_data", newState);
             }else{
                 writeLog("SyncOptionsDelegate:onSelect", "No valid item selected: "+id, 100);
             }
@@ -86,6 +88,9 @@ class SyncOptionsDelegate extends WatchUi.Menu2InputDelegate {
                 }
             } else if (id.equals("sync_preferences")) {
                 Application.getApp().getSparkyConnector().fetchPreferences();
+                WatchUi.showToast("Sync Nutri.", {
+                    :icon => WatchUi.loadResource(Rez.Drawables.positiveCheckToastIcon)
+                });
                 WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
             }else{
                 writeLog("SyncOptionsDelegate:onSelect", "No valid item selected: "+id, 100);
@@ -112,14 +117,14 @@ class ViewOptionsDelegate extends WatchUi.Menu2InputDelegate {
         writeLog("ViewOptionsDelegate", "Selected Item for "+inner_event_type+": "+item.getId(), 100);
         if (item instanceof WatchUi.ToggleMenuItem) {
             var id = item.getId();
-            var newState = item.isEnabled(); // Gets the new state after the click
+            var newState = item.isEnabled();
             
             if (id.equals("view_calories")) {
                 Properties.setValue("view_calories", newState);
             }else if (id.equals("view_nutrition")) {
                 Properties.setValue("view_nutrition", newState);
-            }else if (id.equals("view_nutrition_pie")) {
-                Properties.setValue("view_nutrition_pie", newState);
+            }else if (id.equals("view_calories_breakdown")) {
+                Properties.setValue("view_calories_breakdown", newState);
             }else if (id.equals("view_nutrition_trends")) {
                 Properties.setValue("view_nutrition_trends", newState);
             }else if (id.equals("view_custom_nutrition")) {
@@ -155,7 +160,7 @@ class GenericOptionsDelegate extends WatchUi.Menu2InputDelegate {
         writeLog("GenericOptionsDelegate", "Selected Item for "+inner_event_type+": "+item.getId(), 100);
         if (item instanceof WatchUi.ToggleMenuItem) {
             var id = item.getId();
-            var newState = item.isEnabled(); // Gets the new state after the click
+            var newState = item.isEnabled();
 
             if (id.equals("log_notification")) {
                 Properties.setValue("log_notification", newState);

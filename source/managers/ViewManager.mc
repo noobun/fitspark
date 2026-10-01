@@ -3,6 +3,7 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 import Toybox.System;
 import Toybox.Communications;
+import Toybox.Graphics;
 
 class ViewManager {
 
@@ -52,12 +53,36 @@ class ViewManager {
                 sections["nutrition"] = true;
             }
             viewStack[indexview].add(
-                {"view" => new macroView(self, sparkyconnector, indexview, macro_indexview)}
+                {"view" => new nutriView(self, sparkyconnector, indexview, macro_indexview)}
             );
-            viewStack[indexview][macro_indexview]["del"] = new macroDelegate(self, sparkyconnector, indexview, macro_indexview);
+            viewStack[indexview][macro_indexview]["del"] = new nutriDelegate(self, sparkyconnector, indexview, macro_indexview);
             macro_indexview += 1;
         }
-        if (Application.getApp().getProperty("view_nutrition_pie")){
+        if (Application.getApp().getProperty("view_nutrition_trends")){
+            if (sections["nutrition"] == false) {
+                indexview++;
+                viewStack.add([]);
+                sections["nutrition"] = true;
+            }
+            viewStack[indexview].add(
+                {"view" => new nutritrendsView(self, sparkyconnector, indexview, macro_indexview)}
+            );
+            viewStack[indexview][macro_indexview]["del"] = new nutritrendsDelegate(self, sparkyconnector, indexview, macro_indexview);
+            macro_indexview += 1;
+        }
+        if (Application.getApp().getProperty("view_custom_nutrition") && Capabilities.HAS_TOUCH_HARDWARE){
+            if (sections["nutrition"] == false) {
+                indexview++;
+                viewStack.add([]);
+                sections["nutrition"] = true;
+            }
+            viewStack[indexview].add(
+                {"view" => new customNutriView(self, sparkyconnector, indexview, macro_indexview)}
+            );
+            viewStack[indexview][macro_indexview]["del"] = new customNutriDelegate(self, sparkyconnector, indexview, macro_indexview);
+            macro_indexview += 1;
+        }
+        if (Application.getApp().getProperty("view_calories_breakdown")){
             if (sections["nutrition"] == false) {
                 indexview++;
                 viewStack.add([]);
@@ -69,33 +94,9 @@ class ViewManager {
             viewStack[indexview][macro_indexview]["del"] = new macroPieDelegate(self, sparkyconnector, indexview, macro_indexview);
             macro_indexview += 1;
         }
-        if (Application.getApp().getProperty("view_nutrition_trends")){
-            if (sections["nutrition"] == false) {
-                indexview++;
-                viewStack.add([]);
-                sections["nutrition"] = true;
-            }
-            viewStack[indexview].add(
-                {"view" => new macrotrendsView(self, sparkyconnector, indexview, macro_indexview)}
-            );
-            viewStack[indexview][macro_indexview]["del"] = new macrotrendsDelegate(self, sparkyconnector, indexview, macro_indexview);
-            macro_indexview += 1;
-        }
-        if (Application.getApp().getProperty("view_custom_nutrition") && System.getDeviceSettings().isTouchScreen){
-            if (sections["nutrition"] == false) {
-                indexview++;
-                viewStack.add([]);
-                sections["nutrition"] = true;
-            }
-            viewStack[indexview].add(
-                {"view" => new custommacrotrendsView(self, sparkyconnector, indexview, macro_indexview)}
-            );
-            viewStack[indexview][macro_indexview]["del"] = new custommacrotrendsDelegate(self, sparkyconnector, indexview, macro_indexview);
-            macro_indexview += 1;
-        }
         
         
-        if (Application.getApp().getProperty("view_hydration") && System.getDeviceSettings().isTouchScreen) {
+        if (Application.getApp().getProperty("view_hydration") && Capabilities.HAS_TOUCH_HARDWARE) {
             if (sections["hydration"] == false) {
                 indexview++;
                 viewStack.add([]);
@@ -107,7 +108,7 @@ class ViewManager {
             viewStack[indexview][0]["del"] = new waterDelegate(self, sparkyconnector, indexview, 0);
         }
         
-        if (Application.getApp().getProperty("view_weight") && System.getDeviceSettings().isTouchScreen) {
+        if (Application.getApp().getProperty("view_weight") && Capabilities.HAS_TOUCH_HARDWARE) {
             if (sections["weight"] == false) {
                 indexview++;
                 viewStack.add([]);
@@ -130,6 +131,13 @@ class ViewManager {
             );
             viewStack[indexview][weight_indexview]["del"] = new weightTrendsDelegate(self, sparkyconnector, indexview, weight_indexview);
             weight_indexview += 1;
+        }
+
+        if (viewStack.size() == 0) {
+            writeLog("ViewManager:configureViews", "No views enabled - adding fallback page", 100);
+            viewStack.add([]);
+            viewStack[0].add({"view" => new fallbackView()});
+            viewStack[0][0]["del"] = new fallbackDelegate();
         }
     }
 
@@ -183,11 +191,16 @@ class ViewManager {
         }
     }
 
-    function movePage(direction as Number) as Void{
-        // 1  -> Next Page
-        // -1 -> Back Page
+    function movePage(direction as Number) as Boolean{
+
+        if(viewStack.size() == 0){
+            currentSubLevel = 0;
+            currentLevel = 0;
+            return false;
+        }
 
         currentSubLevel = 0;
+        var previousLevel = currentLevel;
         currentLevel = currentLevel+direction;
         if(currentLevel<0){
             currentLevel=viewStack.size()-1;
@@ -196,15 +209,12 @@ class ViewManager {
         if(currentLevel > viewStack.size()-1){
             currentLevel = 0;
         }
-        // writeLog("ViewManager", "Page: "+currentLevel.toString(), 100);
+        return currentLevel != previousLevel;
     }
 
     function moveSubPage(direction as Number) as Boolean{
-        // 1  -> Next Page
-        // -1 -> Back Page
 
         if((viewStack[currentLevel].size()-1)==0){
-            // writeLog("ViewManager", "No Sublevels", 100);
             return false;
         }else{
             currentSubLevel = currentSubLevel+direction;
@@ -215,9 +225,38 @@ class ViewManager {
             if(currentSubLevel > viewStack[currentLevel].size()-1){
                 currentSubLevel = 0;
             }
-            // writeLog("ViewManager", "SubPage: "+currentSubLevel.toString(), 100);
             return true;
         }
     }
 
+}
+
+class fallbackView extends WatchUi.View {
+    private var _noViewsText;
+    private var _noViewsHint;
+
+    function initialize() {
+        View.initialize();
+        _noViewsText = WatchUi.loadResource(Rez.Strings.NoViewsEnabled);
+        _noViewsHint = WatchUi.loadResource(Rez.Strings.NoViewsHint);
+    }
+
+    function onUpdate(dc) {
+        View.onUpdate(dc);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.clear();
+        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2 - 20, Graphics.FONT_MEDIUM, _noViewsText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2 + 10, Graphics.FONT_SMALL, _noViewsHint, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+}
+
+class fallbackDelegate extends WatchUi.BehaviorDelegate {
+    function initialize() {
+        BehaviorDelegate.initialize();
+    }
+
+    function onMenu() as Boolean {
+        getMainMenu();
+        return true;
+    }
 }

@@ -12,27 +12,28 @@ class weightView extends WatchUi.View {
     private var _sparkyconnector;
     private var _manager;
 
-    private var weightActual = 0;
+    private var weightActual = -1;
 
     private var scaleImage;
+    private var pageHint;
     private var _requestTimer;
     private var _requestCount = 0;
 
     function initialize(manager, sparkyconnector, view_nr, subview_nr) {
         View.initialize();
         _manager = manager;
-        _sparkyconnector = sparkyconnector; // Assuming sparkyconnector is the SparkConnect instance
+        _sparkyconnector = sparkyconnector;
         if (_sparkyconnector != null) {
             _sparkyconnector.setOnDataUpdatedCallback(method(:onSparkyDataUpdated));
         }
+        pageHint = new Rez.Drawables.nextButtonHint();
         writeLog("weightView:Init", "DONE", 10);
     }
 
-    // Load your resources here
     function onLayout(dc as Dc) as Void {
         scaleImage = WatchUi.loadResource(Rez.Drawables.Scale);
 
-        if (System.getDeviceSettings().isTouchScreen) {
+        if (Capabilities.HAS_TOUCH_HARDWARE) {
             var plusBtn = new WatchUi.Button({
                 :stateDefault => new RoundIconButton({
                     :locX => 0, :locY => 0, 
@@ -61,7 +62,6 @@ class weightView extends WatchUi.View {
                 :width => dc.getWidth(), :height => dc.getHeight() * 0.2,
                 :behavior => :onSubmitPressed
             });
-            // Add it to the view's layout
             setLayout([plusBtn, minusBtn, submitBtn]);
         }
 
@@ -81,25 +81,20 @@ class weightView extends WatchUi.View {
         }
     }
 
-    // Update the view
     function onUpdate(dc as Dc) as Void {
-        // Clear screen with a black background
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
         View.onUpdate(dc);
 
         if(_manager.hasSubView()){
-            var pageHint = new Rez.Drawables.nextButtonHint();
             pageHint.draw(dc);
         }
 
         var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
 
-        // Draw header with user name and date
         drawHeader(dc, centerX);
 
-        // Draw weight information
         drawWeight(dc, centerX, dc.getHeight()*0.55);
     }
 
@@ -112,10 +107,8 @@ class weightView extends WatchUi.View {
         var x = (dc.getWidth() - scaleImage.getWidth()) / 2;
         var y = (dc.getHeight()/3 - scaleImage.getHeight()) / 2;
 
-        // Draw the bitmap: drawBitmap(x, y, bitmapResource)
         dc.drawBitmap(x, y, scaleImage);
         
-        // Draw SUBMIT button rectangle and text
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(dc.getWidth() / 2, dc.getHeight() - (dc.getHeight() - centerX*2*0.8) / 2 - dc.getFontHeight(Graphics.FONT_SMALL) / 2, Graphics.FONT_SMALL, "SUBMIT", Graphics.TEXT_JUSTIFY_CENTER);
     }
@@ -123,10 +116,12 @@ class weightView extends WatchUi.View {
     private function drawWeight(dc, centerX, y) {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
-        var weightText = Lang.format("$1$", [weightActual.format("%.1f")]);
+        var weightText = "--.-";
+        if (weightActual != null && weightActual > 0) {
+            weightText = Lang.format("$1$", [weightActual.format("%.1f")]);
+        }
 
         dc.drawText(centerX, y - dc.getFontHeight(Graphics.FONT_NUMBER_HOT)/2, Graphics.FONT_NUMBER_HOT, weightText, Graphics.TEXT_JUSTIFY_CENTER);
-        // dc.drawText(centerX, y + dc.getFontHeight(Graphics.FONT_NUMBER_HOT)/2-dc.getFontHeight(Graphics.FONT_XTINY), Graphics.FONT_XTINY, "kg", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function onHide() as Void {

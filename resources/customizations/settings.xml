@@ -31,15 +31,15 @@
     <setting propertyKey="@Properties.view_nutrition" title="Enable nutrition view">
         <settingConfig type="boolean"/>
     </setting>
-    <setting propertyKey="@Properties.view_nutrition_pie" title="Enable nutrition pie">
-        <settingConfig type="boolean"/>
-    </setting>
     <setting propertyKey="@Properties.view_nutrition_trends" title="Enable nutrition trends">
         <settingConfig type="boolean"/>
     </setting>
     <!-- <setting propertyKey="@Properties.view_custom_nutrition" title="Enable custom nutrition trends | Touchscreen only">
         <settingConfig type="boolean"/>
     </setting> -->
+    <setting propertyKey="@Properties.view_calories_breakdown" title="Enable Calories Breakdown">
+        <settingConfig type="boolean"/>
+    </setting>
 
     <setting propertyKey="@Properties.view_hydration" title="Enable hydratation view | Touchscreen only">
         <settingConfig type="boolean"/>

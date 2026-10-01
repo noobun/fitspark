@@ -14,6 +14,10 @@
         system_icon_destructive__warning
         system_size__toast_icon
     "/>
+    <bitmap id="positiveCheckToastIcon" personality="
+        system_icon_positive__check
+        system_size__toast_icon
+    "/>
     <drawable-list id="nextButtonHint">
         <bitmap id="rightTop" personality="
             system_icon_dark__hint_button_right_top

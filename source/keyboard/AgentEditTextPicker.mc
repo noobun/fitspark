@@ -20,11 +20,32 @@ class AgentEditTextPicker extends WatchUi.TextPickerDelegate {
     }
 
     function onTextEntered(text, changed) {
-        var lastText = text;
-        Properties.setValue(agent, lastText);
-        item.setSubLabel(lastText);
+        if (changed && text != null) {
+            var trimmed = trimEntryWhitespace(text.toString());
+            if (trimmed.length() > 0) {
+                Properties.setValue(agent, trimmed);
+                item.setSubLabel(trimmed);
+            } else {
+                writeLog("AgentEditTextPicker:onTextEntered", "Ignoring blank text entry", 100);
+            }
+        }
+        return true;
+    }
 
-        return changed;
+    function trimEntryWhitespace(value as String) as String {
+        var start = 0;
+        var end = value.length();
+        while (start < end && isWhitespaceChar(value.substring(start, start + 1))) {
+            start++;
+        }
+        while (end > start && isWhitespaceChar(value.substring(end - 1, end))) {
+            end--;
+        }
+        return (end > start) ? value.substring(start, end) : "";
+    }
+
+    function isWhitespaceChar(chunk as String) as Boolean {
+        return chunk.equals(" ") || chunk.equals("\t") || chunk.equals("\n");
     }
 
     function onCancel() {

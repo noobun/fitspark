@@ -4,6 +4,7 @@ import Toybox.Lang;
 using WatchUi as Ui;
 import Toybox.Application;
 import Toybox.System;
+import Toybox.Math;
 using Toybox.Math;
 
 (:glance)
@@ -61,13 +62,11 @@ class OverviewGlanceView extends WatchUi.GlanceView
     }
 
     function onSparkyDataUpdated() as Void {
-        // writeLog("overviewView:onSparkyDataUpdated", "Data received: " + data.toString(), 10);
         getCorrespondingData(data);
         WatchUi.requestUpdate();
     }
 
     function onShow() as Void {
-        // writeLog("GlanceView:onUpdate", event.toString(), 100);
         data = Application.getApp().getProperty("glancedata");
         sync = Application.getApp().getProperty("glancesync");
         getCorrespondingData(data);
@@ -85,24 +84,34 @@ class OverviewGlanceView extends WatchUi.GlanceView
 
     function drawNutriTarget(dc, label as String, actual as Number, goal as Number, unit as String, color as Number) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        if (goal == null || actual == null) {
-            writeLog("GlanceView:drawNutriTarget", "Goal or actual value is null | Goal: " + (goal ? goal.toString() : "null") + ", Actual: " + (actual ? actual.toString() : "null"), 100);
-            dc.drawText(dc.getWidth()*left_padding, dc.getHeight()*0.15, Graphics.FONT_XTINY, "Unavailable", Graphics.TEXT_JUSTIFY_LEFT);
+        var actualValue = 0;
+        if (actual != null && actual >= 0) {
+            actualValue = Math.round(actual.toFloat()).toNumber();
+        }
+        var goalValue = 0;
+        if (goal != null && goal > 0) {
+            goalValue = Math.round(goal.toFloat()).toNumber();
+        }
+        var nutritionText = Lang.format("$1$: $2$ / $3$ $4$", [label, actualValue, goalValue, unit]);
+        dc.drawText(dc.getWidth()*left_padding, dc.getHeight()*0.15, Graphics.FONT_XTINY, nutritionText, Graphics.TEXT_JUSTIFY_LEFT);
+
+        if (goalValue <= 0 || actual == null || actual < 0) {
             return;
         }
-        var nutritionText = Lang.format("$1$: $2$ / $3$ $4$", [label, actual.toNumber(), goal.toNumber(), unit]);
-        dc.drawText(dc.getWidth()*left_padding, dc.getHeight()*0.15, Graphics.FONT_XTINY, nutritionText, Graphics.TEXT_JUSTIFY_LEFT);
 
         var progressBarWidth = dc.getWidth() * 0.9;
         var progressBarHeight = dc.getHeight() * 0.2;
-        var progress = goal > 0 ? (actual.toFloat() / goal) : 0;
+        var rawProgress = actual.toFloat() / goal;
+        var progress = rawProgress;
+        if (progress > 1.0) {
+            progress = 1.0;
+        }
         var filledWidth = progressBarWidth * progress;
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(dc.getWidth()*left_padding, dc.getHeight()*0.22+dc.getFontHeight(Graphics.FONT_XTINY), progressBarWidth, progressBarHeight, 10);
 
-        if(filledWidth > progressBarWidth) {
-            filledWidth = progressBarWidth;
+        if(rawProgress > 1.0) {
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
         }else {
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);

@@ -20,7 +20,6 @@ class overviewDelegate extends WatchUi.BehaviorDelegate {
         _manager = manager;
         _sparkyconnector = sparkyconnector;
         _view = manager.getViewByIndex(view_nr, subview_nr);
-        // _view.setFocus(selection_keys[selected]);
     }
 
     function onKey(keyEvent as WatchUi.KeyEvent) as Lang.Boolean {

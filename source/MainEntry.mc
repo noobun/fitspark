@@ -15,12 +15,9 @@ class DailyNotificationServiceDelegate extends System.ServiceDelegate {
         ServiceDelegate.initialize();
     }
 
-    // This method fires exactly when your scheduled time arrives
     function onTemporalEvent() as Void {
-        // Customize your system notification message here
         var notificationMessage = "SparkyFit: Time to log!";
         
-        // This pushes a native system notification to the watch UI
         Background.requestApplicationWake(notificationMessage);
         
         if(Application.getApp().getProperty("log_notification")){
@@ -30,7 +27,6 @@ class DailyNotificationServiceDelegate extends System.ServiceDelegate {
             );
         }
 
-        // Always exit the background process properly to release memory
         Background.exit(null);
     }
 }
@@ -43,17 +39,15 @@ class MainEntry extends Application.AppBase {
         AppBase.initialize();
     }
 
-    // onStart() is called on application start up
     function onStart(state as Dictionary?) as Void {
   
     }
 
-    // CRITICAL: Tells the OS what to run when the background process wakes up
+    (:background)
     function getServiceDelegate() as [System.ServiceDelegate] {
         return [ new DailyNotificationServiceDelegate() ];
     }
 
-    // onStop() is called when your application is exiting
     function onStop(state as Dictionary?) as Void {
         if (sparkyconnector != null) {
              sparkyconnector.saveToStorage();
@@ -64,7 +58,6 @@ class MainEntry extends Application.AppBase {
         writeLog("MainEntry:OnBackgroundData", data, 100);
     }
 
-    // Return the initial view of your application here
     function getInitialView(){
         sparkyconnector = new SparkConnect();
         manager = new ViewManager(sparkyconnector);
@@ -90,42 +83,65 @@ class MainEntry extends Application.AppBase {
     }  
 
     (:background) 
-    function scheduleDailyNotification(targetHour as Integer, targetMinute as Integer) as Void {
+    function scheduleDailyNotification(targetHour, targetMinute) as Void {
         if (Toybox.System has :ServiceDelegate) {
-            
-            var now = Time.now();
-            var todayInfo = Gregorian.info(now, Time.FORMAT_MEDIUM);
-            
-            // Build the components for today at the targeted hour/minute
-            var targetOptions = {
-                :year   => todayInfo.year,
-                :month  => todayInfo.month,
-                :day    => todayInfo.day,
-                :hour   => targetHour,
-                :minute => targetMinute,
-                :second => 0
-            };
-            
-            var targetMoment = Gregorian.moment(targetOptions);
-            
-            // If the targeted time has already passed today, schedule it for tomorrow
-            if (targetMoment.lessThan(now)) {
-                var oneDay = new Time.Duration(Gregorian.SECONDS_PER_DAY);
-                targetMoment = targetMoment.add(oneDay);
-            }
-            
-            // Enforce Garmin's 5-minute guardrail rule
-            var timeFromNow = targetMoment.subtract(now).value();
-            if (timeFromNow < 300) { 
-                // If it's less than 5 minutes away, push it to tomorrow 
-                // or handle it immediately in the foreground.
-                var oneDay = new Time.Duration(Gregorian.SECONDS_PER_DAY);
-                targetMoment = targetMoment.add(oneDay);
-            }
+            try {
+                var hour = 0;
+                if (targetHour instanceof Number) {
+                    hour = targetHour % 24;
+                } else if (targetHour instanceof String) {
+                    var parsedHour = targetHour.toNumber();
+                    if (parsedHour != null) {
+                        hour = parsedHour % 24;
+                    }
+                }
+                if (hour < 0) {
+                    hour = 0;
+                }
 
-            // Register the event with the OS
-            Background.registerForTemporalEvent(targetMoment);
-            System.println("Daily notification scheduled successfully!");
+                var minute = 0;
+                if (targetMinute instanceof Number) {
+                    minute = targetMinute % 60;
+                } else if (targetMinute instanceof String) {
+                    var parsedMinute = targetMinute.toNumber();
+                    if (parsedMinute != null) {
+                        minute = parsedMinute % 60;
+                    }
+                }
+                if (minute < 0) {
+                    minute = 0;
+                }
+
+                var now = Time.now();
+                var todayInfo = Gregorian.info(now, Time.FORMAT_MEDIUM);
+
+                var targetOptions = {
+                    :year   => todayInfo.year,
+                    :month  => todayInfo.month,
+                    :day    => todayInfo.day,
+                    :hour   => hour,
+                    :minute => minute,
+                    :second => 0
+                };
+
+                var targetMoment = Gregorian.moment(targetOptions);
+
+                if (targetMoment.lessThan(now)) {
+                    var oneDay = new Time.Duration(Gregorian.SECONDS_PER_DAY);
+                    targetMoment = targetMoment.add(oneDay);
+                }
+
+                var timeFromNow = targetMoment.subtract(now).value();
+                if (timeFromNow < 300) {
+                    var oneDay = new Time.Duration(Gregorian.SECONDS_PER_DAY);
+                    targetMoment = targetMoment.add(oneDay);
+                }
+
+                Background.registerForTemporalEvent(targetMoment);
+                System.println("Daily notification scheduled at " + hour.toString() + ":" + minute.toString());
+            } catch (ex) {
+                System.println("scheduleDailyNotification failed: " + ex.getErrorMessage());
+            }
         } else {
             System.println("Backgrounding not supported on this device.");
         }

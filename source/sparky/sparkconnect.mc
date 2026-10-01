@@ -9,13 +9,9 @@ using Toybox.Time.Gregorian;
 class SparkConnect {
     private var requestManager;
     
-    // Data fields
 
-    // private var name;
     private var uuid;
-    // private var date_of_birth;
     private var gender;
-    // private var height;
     private var weight = -1;
     private var weightHistory = {};
 
@@ -27,33 +23,69 @@ class SparkConnect {
     private var primaryWaterContainerID = -1;
     private var waterConsumed = -1;
     
-    private var today;
-    
-    // Callbacks for sync triggers
     private var onDataUpdatedCallback;
+
+    private var _profileFetchPending = false;
+    private var _pendingWeightHistoryDays = -1;
+    private var _pendingHydration = false;
+    private var _pendingNutriTrends = false;
+
+    private var _weightHistoryAccumulator as Dictionary = {};
+    private var _weightHistoryPending = 0;
+
+    private var _weightHistoryGeneration = 0;
+    private var _activeWeightHistoryGeneration = 0;
 
     function initialize() {
         requestManager = new RequestManager();
-        loadFromStorage();
-        today = getDateXDaysAgo(0);
+        if (isStorageEnabled()) {
+            loadFromStorage();
+        }
 
         if (uuid == null) {
             writeLog("SparkConnect:initialize", "No profile found in storage, fetching from API", 10);
+            _profileFetchPending = true;
             fetchProfile();
             fetchPreferences();
         }
     }
 
-    // Set callback for data updates
     function setOnDataUpdatedCallback(callback) {
         onDataUpdatedCallback = callback;
     }
 
-    // Getters
-    // function getName() { return name; }
-    // function getBirthday() { return date_of_birth; }
+    private function isStorageEnabled() as Boolean {
+        return Application.getApp().getProperty("persist_data") == true;
+    }
+
+    function getTodayStr() as String {
+        return getDateXDaysAgo(0);
+    }
+
+    private function ensureProfileLoaded() as Void {
+        if (uuid == null && !_profileFetchPending) {
+            _profileFetchPending = true;
+            fetchProfile();
+        }
+    }
+
+    private function flushPendingFetches() as Void {
+        if (_pendingWeightHistoryDays >= 0) {
+            var deferredDays = _pendingWeightHistoryDays;
+            _pendingWeightHistoryDays = -1;
+            fetchWeightHistory(deferredDays);
+        }
+        if (_pendingHydration) {
+            _pendingHydration = false;
+            fetchHydration();
+        }
+        if (_pendingNutriTrends) {
+            _pendingNutriTrends = false;
+            fetchNutriTrends();
+        }
+    }
+
     function getGender() { return gender; }
-    // function getHeight() { return height; }
     function getWeight() { return weight; }
     function getCaloriesConsumed() { return getMacroXDaysAgo("calories", 0); }
     function getProteinConsumed() { return getMacroXDaysAgo("protein", 0); }
@@ -76,6 +108,20 @@ class SparkConnect {
     function getGoals() { return goals; }
 
     function getInterestNutrients() { return interestNutrients; }
+    function getInterestNutrientsCured() { 
+        return filterInterestNutrients(interestNutrients); 
+    } 
+    
+    private function filterInterestNutrients(nutrients) {
+        var filtered = [];
+        for (var i = 0; i < nutrients.size(); i++) {
+            if (!nutrients[i].equals("calories")) {
+                filtered.add(nutrients[i]);
+            }
+        }
+        return filtered;
+    }
+
     function getPrimaryWaterContainerID() { return primaryWaterContainerID; }
 
     function getMacroTrends(macro) { 
@@ -133,10 +179,14 @@ class SparkConnect {
     function getWaterContainers() {return waterContainers; }
 
     function drink(container_id, change_drinks) {
+        if (uuid == null) {
+            writeLog("SparkConnect:drink", "Profile/uuid not ready; ignoring drink request", 100);
+            return;
+        }
         var data = {
             "change_drinks" => change_drinks,
             "container_id" => container_id,
-            "entry_date" => today.toString(),
+            "entry_date" => getTodayStr(),
             "user_id" => uuid.toString()
         };
         writeLog("SparkConnect:drink", "Submitting hydration change: "+data.toString(), 100);
@@ -145,13 +195,12 @@ class SparkConnect {
 
     function submitWeight(weight) {
         var data = {
-            "entry_date" => today.toString(),
+            "entry_date" => getTodayStr(),
             "weight" => weight
         };
         requestManager.post("/api/measurements/check-in", data, method(:onWeightFetched));
     }
 
-    // API methods
     private function fetchProfile() {
         requestManager.get("/api/identity/profiles", {}, method(:onProfileFetched));
     }
@@ -166,7 +215,7 @@ class SparkConnect {
 
     function fetchNutrition(date) {
         if (date == null){
-            date = today;
+            date = getTodayStr();
         }
         fetchNutritionGoalByDate(date);
         fetchNutriTrends();
@@ -185,19 +234,35 @@ class SparkConnect {
     }
 
     function fetchNutriTrends() {
-        if(uuid == null){
-            fetchProfile(); // Ensure we have the UUID before fetching trends
+        if (uuid == null) {
+            writeLog("SparkConnect:fetchNutriTrends", "Profile not loaded yet; deferring mini nutrition trends", 100);
+            _pendingNutriTrends = true;
+            ensureProfileLoaded();
+            return;
         }
         var agoMoment = getDateXDaysAgo(4);
-        var endpoint = "/api/reports/mini-nutrition-trends?userId=" + uuid + "&startDate=" + agoMoment + "&endDate=" + today;
+        var endpoint = "/api/reports/mini-nutrition-trends?userId=" + uuid + "&startDate=" + agoMoment + "&endDate=" + getTodayStr();
         requestManager.get(endpoint, {}, method(:onNutriTrendsFetched));
     }
 
     function fetchWeightHistory(days) {
-        if(uuid == null){
-            fetchProfile(); // Ensure we have the UUID before fetching trends
+        if (days == null || days <= 0) {
+            return;
         }
-        weightHistory = {}; // Reset history
+        if (uuid == null) {
+            writeLog("SparkConnect:fetchWeightHistory", "Profile not loaded yet; deferring weight history", 100);
+            _pendingWeightHistoryDays = days;
+            ensureProfileLoaded();
+            return;
+        }
+        if (_weightHistoryPending > 0) {
+            writeLog("SparkConnect:fetchWeightHistory", "Weight-history batch already in flight; skipping duplicate fetch", 50);
+            return;
+        }
+        _weightHistoryGeneration += 1;
+        _activeWeightHistoryGeneration = _weightHistoryGeneration;
+        _weightHistoryAccumulator = {};
+        _weightHistoryPending = days;
         for (var i = 0; i < days; i++) {
             requestManager.get(
                 "/api/reports?userId=" + uuid + "&startDate=" + getDateXDaysAgo(i) + "&endDate=" + getDateXDaysAgo(i), 
@@ -208,20 +273,26 @@ class SparkConnect {
     }
 
     function fetchHydration() {
-        if(uuid == null){
-            fetchProfile(); // Ensure we have the UUID before fetching trends
+        if (uuid == null) {
+            writeLog("SparkConnect:fetchHydration", "Profile not loaded yet; deferring hydration", 100);
+            _pendingHydration = true;
+            ensureProfileLoaded();
+            return;
         }
-        fetchNutritionGoalByDate(today);
-        requestManager.get("/api/measurements/water-intake/"+today+"?userId="+uuid, {}, method(:onHydrationFetched));
+        fetchNutritionGoalByDate(getTodayStr());
+        requestManager.get("/api/measurements/water-intake/"+getTodayStr()+"?userId="+uuid, {}, method(:onHydrationFetched));
     }
 
-    // Response handlers
     function onProfileFetched(result as Dictionary) as Void{
+        _profileFetchPending = false;
         if (result[:success]) {
             var data = result[:data];
-            // name = data.get("full_name");
-            // date_of_birth = data.get("date_of_birth");
-            uuid = data.get("id");
+            if (data != null && data instanceof Dictionary) {
+                uuid = data.get("id");
+            }
+            if (uuid != null) {
+                flushPendingFetches();
+            }
         }
         else{
             writeLog("SparkConnect:onProfileFetched", "Fetch Failed", 100);
@@ -242,19 +313,44 @@ class SparkConnect {
     }
 
     function onWeightHistoryFetched(result) {
+        if (_weightHistoryGeneration != _activeWeightHistoryGeneration) {
+            return;
+        }
         if (result[:success]) {
-            var data = result[:data];
-            data = data.get("measurementData");
-            for (var i = 0; i < data.size(); i++) {
-                var entry = data[i];
-                // Store or process the trend data as needed
-                weightHistory[entry.get("entry_date")] = entry.get("weight");
-            }
-            if (weightHistory.size() == 7){
-                notifyDataUpdated();
+            try {
+                var data = result[:data];
+                if (data != null && data instanceof Dictionary) {
+                    var measurementData = data.get("measurementData");
+                    if (measurementData != null && measurementData instanceof Array) {
+                        for (var i = 0; i < measurementData.size(); i++) {
+                            var entry = measurementData[i];
+                            if (entry != null && entry instanceof Dictionary) {
+                                var dateKey = entry.get("entry_date");
+                                if (dateKey != null) {
+                                    _weightHistoryAccumulator[dateKey] = entry.get("weight");
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (ex) {
+                writeLog("SparkConnect:onWeightHistoryFetched", "Parse failed: " + ex.getErrorMessage(), 100);
             }
         }else{
             writeLog("SparkConnect:onWeightHistoryFetched", "Fetch Failed:"+result[:code].toString(), 100);
+        }
+
+        _weightHistoryPending -= 1;
+        if (_weightHistoryPending <= 0) {
+            _weightHistoryPending = 0;
+            if (_weightHistoryAccumulator.size() > 0) {
+                weightHistory = _weightHistoryAccumulator;
+                if (isStorageEnabled()) {
+                    Storage.setValue("weightHistory", weightHistory);
+                }
+            }
+            _weightHistoryAccumulator = {};
+            notifyDataUpdated();
         }
     }
 
@@ -273,7 +369,9 @@ class SparkConnect {
             writeLog("SparkConnect:onInterestNutrientsFetched", "Fetch Failed:"+result[:code].toString(), 100);
         }
 
-        Storage.setValue("interestNutrients", interestNutrients);
+        if (isStorageEnabled()) {
+            Storage.setValue("interestNutrients", interestNutrients);
+        }
     }
 
     function onNutriTrendsFetched(result) {
@@ -313,7 +411,7 @@ class SparkConnect {
         }else{
             if (WatchUi has :showToast) {
                 WatchUi.showToast("Failed", {
-                    :icon => WatchUi.loadResource(Rez.Drawables.warningToastIcon) // Your custom "i" icon
+                    :icon => WatchUi.loadResource(Rez.Drawables.warningToastIcon)
                 });
             }
             writeLog("SparkConnect:onHydrationUpdated", "Fetch Failed", 100);
@@ -341,61 +439,57 @@ class SparkConnect {
         }
     }
     
-    // Storage methods
     function saveToStorage() {
-        // Storage.setValue("name", name);
+        if (!isStorageEnabled()) {
+            return;
+        }
         Storage.setValue("uuid", uuid);
-        // Storage.setValue("date_of_birth", date_of_birth);
         Storage.setValue("gender", gender);
-        // Storage.setValue("height", height);
         Storage.setValue("weight", weight);
         Storage.setValue("goals", goals);
         Storage.setValue("nutrition_trends", nutrition_trends);
         Storage.setValue("waterConsumed", waterConsumed);
         Storage.setValue("weightHistory", weightHistory);
         Storage.setValue("waterContainers", waterContainers);
+        Storage.setValue("primaryWaterContainerID", primaryWaterContainerID);
     }
 
     private function loadFromStorage() {
-        // if(Storage.getValue("name") != null){ // Clear storage for testing purposes
-        //     name = Storage.getValue("name");
-        // }
-        if(Storage.getValue("uuid") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("uuid") != null){
             uuid = Storage.getValue("uuid");
         }
-        // if(Storage.getValue("date_of_birth") != null){ // Clear storage for testing purposes
-        //     date_of_birth = Storage.getValue("date_of_birth");
-        // }
-        if(Storage.getValue("gender") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("gender") != null){
             gender = Storage.getValue("gender");
         }
-        // if(Storage.getValue("height") != null){ // Clear storage for testing purposes
-        //     height = Storage.getValue("height");
-        // }
-        if(Storage.getValue("weight") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("weight") != null){
             weight = Storage.getValue("weight");
         }
-        if(Storage.getValue("goals") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("goals") != null){
             goals = Storage.getValue("goals");
         }
-        if(Storage.getValue("nutrition_trends") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("nutrition_trends") != null){
             nutrition_trends = Storage.getValue("nutrition_trends");
         }
-        if(Storage.getValue("waterConsumed") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("waterConsumed") != null){
             waterConsumed = Storage.getValue("waterConsumed");
         }
-        if(Storage.getValue("weightHistory") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("weightHistory") != null){
             weightHistory = Storage.getValue("weightHistory");
         }
-        if(Storage.getValue("waterContainers") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("waterContainers") != null){
             waterContainers = Storage.getValue("waterContainers");
         }
-        if(Storage.getValue("interestNutrients") != null){ // Clear storage for testing purposes
+        if(Storage.getValue("primaryWaterContainerID") != null){
+            primaryWaterContainerID = Storage.getValue("primaryWaterContainerID");
+        }
+        if(Storage.getValue("interestNutrients") != null){
             interestNutrients = Storage.getValue("interestNutrients");
         }
     }
 
     private function notifyDataUpdated() {
-        onDataUpdatedCallback.invoke();
+        if (onDataUpdatedCallback != null) {
+            onDataUpdatedCallback.invoke();
+        }
     }
 }

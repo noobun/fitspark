@@ -1,1 +1,23 @@
 project.manifest = manifest.xml
+
+# All devices fallback to standard source
+base.sourcePath = source
+
+# ====================================================================
+# GLOBAL DEFAULT: TOUCH STAYS ACTIVE
+# ====================================================================
+# Drops the button layout config everywhere by default.
+# This automatically handles all Fenix 7, Fenix 8, Fenix E, and FR970 models.
+base.excludeAnnotations = button_layout
+
+# ====================================================================
+# BUTTON-ONLY OVERRIDES: Strip out touch layout to enforce button variables
+# ====================================================================
+
+# Forerunner Mid-Tier (Button Only)
+fr57042mm.excludeAnnotations = touch_layout
+fr57047mm.excludeAnnotations = touch_layout
+
+# Instinct 3 AMOLED Series (Strictly Non-Touch Screen / Button Navigation)
+instinct3amoled45mm.excludeAnnotations = touch_layout
+instinct3amoled50mm.excludeAnnotations = touch_layout
